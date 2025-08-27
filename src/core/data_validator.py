@@ -41,6 +41,8 @@ def validate_email(email: str) -> bool:
     """
     Validate an email address.
     """
+    if not email:
+        return False
     logger.info(f"Validating email: {email}")
     try:
         ev_validate(email)

@@ -86,7 +86,9 @@ def test_main_no_write(mock_argparse):
 @patch("scripts.generate_key.argparse.ArgumentParser")
 @patch("scripts.generate_key.read_env", return_value="OPENROUTER_API_KEY=dummy\n")
 @patch("scripts.generate_key.write_env")
-def test_main_write_and_force(mock_write_env, mock_read_env, mock_argparse):
+@patch("pathlib.Path.exists", return_value=True) # Mock path existence
+def test_main_write_and_force(mock_path_exists, mock_write_env, mock_read_env, mock_argparse):
+
     """Test main function with --write and --force arguments."""
     mock_args = MagicMock()
     mock_args.write = True

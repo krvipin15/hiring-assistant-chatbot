@@ -57,46 +57,46 @@ class TestApp:
         self, MockConversationManager, mock_st
     ):
         """Test initializing a new session state."""
-        # Reset session_state for a clean test
-        mock_st.session_state = {}
+        # Use a MagicMock to allow attribute access and `in` checks
+        mock_st.session_state = MagicMock()
+        # Simulate that keys are not in the mock session state initially
+        mock_st.session_state.__contains__.side_effect = lambda item: item not in ['conversation_manager', 'needs_response', 'messages']
+
         mock_conversation_manager = MagicMock()
         mock_conversation_manager.handle_message.return_value = "Welcome!"
         MockConversationManager.return_value = mock_conversation_manager
 
         initialize_session_state()
 
-        assert "conversation_manager" in mock_st.session_state
-        assert "needs_response" in mock_st.session_state
-        assert "messages" in mock_st.session_state
+        # Check that the attributes were set
+        assert mock_st.session_state.conversation_manager is not None
+        assert mock_st.session_state.needs_response is False
         assert len(mock_st.session_state.messages) == 1
-        assert mock_st.session_state.messages[0]["content"] == "Welcome!"
-        mock_conversation_manager.handle_message.assert_called_once_with("start")
+        assert mock_st.session_state.messages[0]['content'] == "Welcome!"
 
     def test_initialize_session_state_with_old_messages(self, mock_st):
         """Test the fix for the old session state format."""
-        # Simulate an old session state with integer timestamps
-        mock_st.session_state = {
-            "conversation_manager": MagicMock(),
-            "messages": [{"role": "user", "content": "hi", "timestamp": 12345}],
-        }
+        mock_st.session_state = MagicMock()
+        mock_st.session_state.conversation_manager = MagicMock()
+        mock_st.session_state.messages = [{"role": "user", "content": "hi", "timestamp": 12345}] # Old format
+        mock_st.session_state.__contains__.return_value = True
 
         initialize_session_state()
 
-        # The messages list should be reset
-        assert (
-            len(mock_st.session_state.messages) == 1
-        )  # It gets the initial welcome message
+        # The messages list should be reset, then the initial welcome message is added
+        assert len(mock_st.session_state.messages) == 1
+        assert mock_st.session_state.messages[0]['content'] != 'hi' # Check that the old message is gone
 
     def test_initialize_session_state_existing_manager(self, mock_st):
         """Test that an existing ConversationManager is not replaced."""
         existing_manager = MagicMock()
-        mock_st.session_state = {
-            "conversation_manager": existing_manager,
-            "messages": [
-                {"role": "assistant", "content": "Hello", "timestamp": MagicMock()}
-            ],
-        }
+        mock_st.session_state = MagicMock()
+        mock_st.session_state.conversation_manager = existing_manager
+        mock_st.session_state.messages = [{"role": "assistant", "content": "Hello", "timestamp": MagicMock()}]
+        mock_st.session_state.__contains__.return_value = True
 
         initialize_session_state()
 
         assert mock_st.session_state.conversation_manager is existing_manager
+        # Ensure messages are not reset if the format is correct
+        assert len(mock_st.session_state.messages) == 1

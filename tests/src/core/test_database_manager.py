@@ -88,9 +88,10 @@ class TestDatabaseManager:
         mock_encryption_manager.encrypt.assert_any_call("New York")
         assert mock_encryption_manager.encrypt.call_count == 3
 
+    @patch("src.core.database_manager.DatabaseManager._create_table")
     @patch("sqlite3.connect")
     def test_save_candidate_db_error(
-        self, mock_sql_connect, db_path, mock_encryption_manager
+        self, mock_sql_connect, mock_create_table, db_path, mock_encryption_manager
     ):
         """Test the behavior when a database error occurs."""
         # Force the database connection to raise an error

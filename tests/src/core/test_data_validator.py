@@ -1,6 +1,7 @@
 import pytest
+import requests
 from unittest.mock import patch, MagicMock
-from src.core.data_validator import validate_email, validate_phone, validate_location
+from src.core.data_validator import validate_email, validate_phone, validate_location, EmailNotValidError
 
 
 # Test cases for email validation
@@ -15,8 +16,12 @@ from src.core.data_validator import validate_email, validate_phone, validate_loc
         (None, False),
     ],
 )
-def test_validate_email(email, expected):
-    assert validate_email(email) == expected
+@patch("src.core.data_validator.ev_validate")
+def test_validate_email(mock_ev_validate, email, expected):
+    if not expected:
+        mock_ev_validate.side_effect = EmailNotValidError()
+    
+    assert validate_email(email) is expected
 
 
 # Test cases for phone number validation

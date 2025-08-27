@@ -98,7 +98,9 @@ class TestConversationManager:
         assert manager.state == ConversationState.COLLECTING_NAME
         assert "full name" in response
 
-    def test_technical_screening_flow(self, manager):
+    @patch("src.core.conversation_manager.ConversationManager._is_skip_response", return_value=False)
+    @patch("src.core.conversation_manager.ConversationManager._assess_response_quality", return_value=False)
+    def test_technical_screening_flow(self, mock_assess, mock_skip, manager):
         # Setup state for technical screening
         manager.state = ConversationState.TECHNICAL_SCREENING
         manager.tech_stack_list = ["Python", "Java"]
@@ -108,30 +110,32 @@ class TestConversationManager:
             "Java": {"questions": [], "responses": [], "current_question": 0},
         }
         manager.model_manager.generate_response.side_effect = [
-            "Python Q2",
-            "Python Q3",
-            "Python Q4",
-            "Python Q5",
-            "Java Q1",
-            "Java Q2",
-            "Java Q3",
-            "Java Q4",
-            "Java Q5",
-            "Final Summary",
+            "Python Q1", "Python Q2", "Python Q3", "Python Q4", "Python Q5",
+            "Java Q1", "Java Q2", "Java Q3", "Java Q4", "Java Q5",
+            "Final Summary"
         ]
 
-        # Go through 5 questions for Python
-        for i in range(5):
-            response = manager.handle_message(f"Answer to Python Q{i+1}")
-            if i < 4:
-                assert f"Next Python question" in response
-                assert f"Python Q{i+2}" in response
-                assert manager.state == ConversationState.TECHNICAL_SCREENING
-            else:
-                # Last Python question, should transition to Java
-                assert "Excellent work on Python!" in response
-                assert "Now let's move to **Java**" in response
-                assert "Java Q1" in response
+        # This test needs to be more realistic about the conversation flow
+        # 1. User provides tech stack, which generates the first question
+        manager.state = ConversationState.COLLECTING_TECH_STACK
+        response = manager.handle_message("Python, Java")
+        assert "Let's start with **Python**" in response
+        assert "Python Q1" in response # First question is generated here
+
+        # 2. Now, we are in the technical screening state
+        assert manager.state == ConversationState.TECHNICAL_SCREENING
+
+        # 3. Loop through the remaining Python questions
+        for i in range(1, 5):
+            response = manager.handle_message(f"Answer to Python Q{i}")
+            assert f"Next Python question" in response
+            assert f"Python Q{i+1}" in response
+        
+        # 4. Answer the last Python question
+        response = manager.handle_message("Answer to Python Q5")
+        assert "Excellent work on Python!" in response
+        assert "Now let's move to **Java**" in response
+        assert "Java Q1" in response
 
         # Check state after Python questions
         assert manager.current_tech_index == 1

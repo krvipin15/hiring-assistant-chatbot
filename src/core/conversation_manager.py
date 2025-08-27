@@ -358,7 +358,7 @@ class ConversationManager:
         """
         Parse tech stack string into normalized list of technologies.
         """
-        raw_tokens = re.split(r",|\band\b|/|&", tech_stack, flags=re.IGNORECASE)
+        raw_tokens = re.split(r"[,;/\s]|\band\b", tech_stack, flags=re.IGNORECASE)
         technologies = []
         for token in raw_tokens:
             tech = token.strip(" .;:- ").strip()
