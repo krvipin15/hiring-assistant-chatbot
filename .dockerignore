@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Python
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+*.log.*
+
+# Databases
+*.db
+
+# IDE / Editor
+.idea/
+.vscode/
