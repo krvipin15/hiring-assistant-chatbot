@@ -62,7 +62,9 @@ def validate_phone(phone: str) -> bool:
         if is_valid:
             logger.info(f"Phone number validation successful for {phone}")
         else:
-            logger.warning(f"Phone number validation failed for {phone}: Not a valid number.")
+            logger.warning(
+                f"Phone number validation failed for {phone}: Not a valid number."
+            )
         return is_valid
     except phonenumbers.NumberParseException as e:
         logger.warning(f"Phone number validation failed for {phone}: {e}")
@@ -77,9 +79,16 @@ def validate_location(location: str) -> bool:
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": location, "format": "json", "limit": 1}
     try:
-        resp = requests.get(url, params=params, headers={"User-Agent": "hiring-assistant-chatbot"}, timeout=10)
+        resp = requests.get(
+            url,
+            params=params,
+            headers={"User-Agent": "hiring-assistant-chatbot"},
+            timeout=10,
+        )
         if resp.status_code != 200:
-            logger.error(f"Nominatim API request failed with status {resp.status_code}: {resp.text}")
+            logger.error(
+                f"Nominatim API request failed with status {resp.status_code}: {resp.text}"
+            )
             return False
 
         data = resp.json()
@@ -89,17 +98,25 @@ def validate_location(location: str) -> bool:
 
         result = data[0]
         if "display_name" not in result or not result["display_name"]:
-            logger.warning(f"Nominatim found a result for '{location}' but it has no display name.")
+            logger.warning(
+                f"Nominatim found a result for '{location}' but it has no display name."
+            )
             return False
 
         importance = float(result.get("importance", 0))
         if importance < 0.2:
-            logger.warning(f"Location '{location}' has a low importance score ({importance}), likely not a valid place.")
+            logger.warning(
+                f"Location '{location}' has a low importance score ({importance}), likely not a valid place."
+            )
             return False
 
-        logger.info(f"Location validation successful for '{location}'. Found: {result['display_name']}")
+        logger.info(
+            f"Location validation successful for '{location}'. Found: {result['display_name']}"
+        )
         return True
 
     except requests.RequestException as e:
-        logger.exception(f"An error occurred while validating location '{location}': {e}")
+        logger.exception(
+            f"An error occurred while validating location '{location}': {e}"
+        )
         return False

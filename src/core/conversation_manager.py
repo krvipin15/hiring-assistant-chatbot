@@ -35,6 +35,7 @@ from src.core.data_validator import validate_email, validate_phone, validate_loc
 
 class ConversationState(Enum):
     """Enumeration of possible conversation states."""
+
     INTRODUCTION = "introduction"
     COLLECTING_NAME = "collecting_name"
     COLLECTING_PHONE = "collecting_phone"
@@ -81,8 +82,15 @@ class ConversationManager:
         self.model_manager = ModelManager()
         self.db_manager = DatabaseManager()
         self.state = ConversationState.INTRODUCTION
-        self.candidate_data: Dict[str, Any] = {"name": "", "phone_number": "", "email": "", "current_location": "",
-                                               "experience_years": 0, "desired_positions": "", "tech_stack": ""}
+        self.candidate_data: Dict[str, Any] = {
+            "name": "",
+            "phone_number": "",
+            "email": "",
+            "current_location": "",
+            "experience_years": 0,
+            "desired_positions": "",
+            "tech_stack": "",
+        }
         self.technical_responses: Dict[str, Any] = {}
         self.conversation_history: List[Dict[str, str]] = []
         self.tech_stack_list: List[str] = []
@@ -110,7 +118,15 @@ class ConversationManager:
         user_input = user_input.strip()
 
         # Handle exit commands - save data and end conversation
-        if user_input.lower() in ["exit", "quit", "stop", "end", "goodbye", "bye", "done"]:
+        if user_input.lower() in [
+            "exit",
+            "quit",
+            "stop",
+            "end",
+            "goodbye",
+            "bye",
+            "done",
+        ]:
             return self._handle_exit()
 
         response = ""
@@ -138,17 +154,23 @@ class ConversationManager:
                 response = self._handle_completed_state(user_input)
             else:
                 logger.error(f"Unhandled conversation state: {self.state}")
-                response = "I'm sorry, something went wrong. Please refresh to try again. " \
-                            "If the issue persists, please contact support."
+                response = (
+                    "I'm sorry, something went wrong. Please refresh to try again. "
+                    "If the issue persists, please contact support."
+                )
 
         except Exception as e:
             logger.exception(f"Error handling message in state {self.state.value}: {e}")
-            response = "I apologize, but I encountered an error. " \
-            "Please contact support if you are not able to continue with the next question."
+            response = (
+                "I apologize, but I encountered an error. "
+                "Please contact support if you are not able to continue with the next question."
+            )
 
         # Add to conversation history
         self.conversation_history.append({"role": "user", "content": user_input})
-        self.conversation_history.append({"role": "assistant", "content": response if response is not None else ""})
+        self.conversation_history.append(
+            {"role": "assistant", "content": response if response is not None else ""}
+        )
         logger.debug(f"Assistant response: {response}")
 
         return response if response is not None else ""
@@ -160,7 +182,9 @@ class ConversationManager:
         try:
             # Only save if we have at least basic information
             if self.candidate_data.get("name") and any(self.candidate_data.values()):
-                self.db_manager.save_candidate(self.candidate_data, self.technical_responses)
+                self.db_manager.save_candidate(
+                    self.candidate_data, self.technical_responses
+                )
                 logger.info("Candidate data saved successfully on exit.")
                 return (
                     f"Thank you for your time {self.candidate_data['name']}! Your information has been saved securely. "
@@ -186,9 +210,11 @@ class ConversationManager:
         if user_input.lower() in ["hello", "hi", "hey", "start", "begin"]:
             logger.info("Transitioning state from INTRODUCTION to COLLECTING_NAME")
             self.state = ConversationState.COLLECTING_NAME
-            return "Hello and welcome to TalentScout! I'm here to run a short initial screening to collect a few details and " \
-                "ask some technical questions tailored to your skills. This should take about 10-15 minutes. To start, " \
+            return (
+                "Hello and welcome to TalentScout! I'm here to run a short initial screening to collect a few details and "
+                "ask some technical questions tailored to your skills. This should take about 10-15 minutes. To start, "
                 "what's your full name?"
+            )
 
     def _handle_name_collection(self, user_input: str) -> str:
         """Handle name collection phase."""
@@ -209,7 +235,7 @@ class ConversationManager:
 
     def _handle_phone_collection(self, user_input: str) -> str:
         """Handle phone number collection phase."""
-        phone = re.sub(r'[^\d+\-\s\(\)]', '', user_input)
+        phone = re.sub(r"[^\d+\-\s\(\)]", "", user_input)
 
         if validate_phone(phone):
             self.candidate_data["phone_number"] = phone
@@ -219,9 +245,7 @@ class ConversationManager:
             return "Great! Provide your deliverable email address e.g., mikesmith@gmail.com."
         else:
             logger.warning(f"Invalid phone number received: {user_input}")
-            return (
-                "Validation failed! Please provide a valid phone number with country code."
-            )
+            return "Validation failed! Please provide a valid phone number with country code."
 
     def _handle_email_collection(self, user_input: str) -> str:
         """Handle email collection phase."""
@@ -295,7 +319,9 @@ class ConversationManager:
         """Handle tech stack collection phase."""
         if len(user_input) < 3:
             logger.warning(f"Tech stack input too short: {user_input}")
-            return "Please describe your technical skills and technologies you work with."
+            return (
+                "Please describe your technical skills and technologies you work with."
+            )
 
         self.candidate_data["tech_stack"] = user_input
         logger.info(f"Collected tech stack: {user_input}")
@@ -311,7 +337,7 @@ class ConversationManager:
             self.tech_assessments[tech] = {
                 "questions": [],
                 "responses": [],
-                "current_question": 0
+                "current_question": 0,
             }
 
         self.state = ConversationState.TECHNICAL_SCREENING
@@ -351,13 +377,17 @@ class ConversationManager:
         seen = set()
         return [t for t in technologies if not (t in seen or seen.add(t))]
 
-    def _generate_technical_question(self, technology: str, question_number: int) -> str:
+    def _generate_technical_question(
+        self, technology: str, question_number: int
+    ) -> str:
         """
         Generate a technical question for a specific technology.
         """
         experience_years = self.candidate_data.get("experience_years", 0)
         experience_level = self._get_experience_level(experience_years)
-        logger.info(f"Generating Q{question_number} for {technology} at {experience_level} level.")
+        logger.info(
+            f"Generating Q{question_number} for {technology} at {experience_level} level."
+        )
 
         tech_assessment = self.tech_assessments.get(technology, {})
         previous_responses = tech_assessment.get("responses", [])
@@ -378,7 +408,9 @@ Question guidelines:
 Generate only the question, no additional text."""
 
         try:
-            question = self.model_manager.generate_response(context_prompt, self.conversation_history)
+            question = self.model_manager.generate_response(
+                context_prompt, self.conversation_history
+            )
             logger.info(f"Generated question: {question}")
             return question.strip()
         except Exception as e:
@@ -405,15 +437,21 @@ Generate only the question, no additional text."""
             needs_followup = self._assess_response_quality(user_input)
             if needs_followup and len(tech_assessment["responses"]) > 0:
                 logger.info("Response quality warrants a follow-up question.")
-                followup_question = self._generate_followup_question(current_tech, user_input)
+                followup_question = self._generate_followup_question(
+                    current_tech, user_input
+                )
                 return f"That's interesting! Let me ask a follow-up:\n\n{followup_question}"
             elif self._is_skip_response(user_input):
                 logger.info("AI classified this as a skip response.")
-                question = self._generate_technical_question(current_tech, self.current_tech_question_count + 1)
+                question = self._generate_technical_question(
+                    current_tech, self.current_tech_question_count + 1
+                )
                 return f"No problem! Let's move on to the next question:\n\n{question}"
             else:
                 logger.info("Proceeding to the next technical question.")
-                question = self._generate_technical_question(current_tech, self.current_tech_question_count + 1)
+                question = self._generate_technical_question(
+                    current_tech, self.current_tech_question_count + 1
+                )
                 return f"Great! Next {current_tech} question:\n\n{question}"
         else:
             logger.info(f"Completed all questions for {current_tech}.")
@@ -424,9 +462,7 @@ Generate only the question, no additional text."""
                 next_tech = self.tech_stack_list[self.current_tech_index]
                 logger.info(f"Moving to next technology: {next_tech}")
                 question = self._generate_technical_question(next_tech, 1)
-                return (
-                    f"Excellent work on {current_tech}! Now let's move to **{next_tech}**:\n\n{question}"
-                )
+                return f"Excellent work on {current_tech}! Now let's move to **{next_tech}**:\n\n{question}"
             else:
                 logger.info("All technologies assessed. Completing screening.")
                 return self._complete_technical_screening()
@@ -462,15 +498,32 @@ Generate only the question, no additional text."""
             return False
 
         technical_indicators = [
-            'implement', 'architecture', 'design', 'optimize', 'performance',
-            'scale', 'database', 'api', 'framework', 'algorithm', 'solution',
-            'challenge', 'problem', 'approach', 'method', 'strategy'
+            "implement",
+            "architecture",
+            "design",
+            "optimize",
+            "performance",
+            "scale",
+            "database",
+            "api",
+            "framework",
+            "algorithm",
+            "solution",
+            "challenge",
+            "problem",
+            "approach",
+            "method",
+            "strategy",
         ]
-        indicator_count = sum(1 for indicator in technical_indicators if indicator in response_lower)
+        indicator_count = sum(
+            1 for indicator in technical_indicators if indicator in response_lower
+        )
         logger.debug(f"Found {indicator_count} technical indicators in response.")
         return indicator_count >= 2
 
-    def _generate_followup_question(self, technology: str, previous_response: str) -> str:
+    def _generate_followup_question(
+        self, technology: str, previous_response: str
+    ) -> str:
         """
         Generate a follow-up question based on the candidate's response.
         """
@@ -488,7 +541,9 @@ Generate a relevant follow-up question that digs deeper into their technical und
 Generate only the follow-up question, no additional text."""
 
         try:
-            followup = self.model_manager.generate_response(context_prompt, self.conversation_history[-4:])
+            followup = self.model_manager.generate_response(
+                context_prompt, self.conversation_history[-4:]
+            )
             logger.info(f"Generated follow-up: {followup}")
             return followup.strip()
         except Exception as e:
@@ -501,7 +556,7 @@ Generate only the follow-up question, no additional text."""
         try:
             all_responses = {
                 **self.technical_responses,
-                "tech_assessments": self.tech_assessments
+                "tech_assessments": self.tech_assessments,
             }
             self.db_manager.save_candidate(self.candidate_data, all_responses)
             self.state = ConversationState.COMPLETED
@@ -535,9 +590,12 @@ Generate only the follow-up question, no additional text."""
 
         response = self.model_manager.generate_response(
             context_prompt,
-            self.conversation_history[-6:] if self.conversation_history else []
+            self.conversation_history[-6:] if self.conversation_history else [],
         )
-        return response + "\n\nIf you have any other questions, feel free to ask or contact our HR team directly!"
+        return (
+            response
+            + "\n\nIf you have any other questions, feel free to ask or contact our HR team directly!"
+        )
 
     def get_conversation_state(self) -> Dict[str, Any]:
         """
@@ -547,7 +605,7 @@ Generate only the follow-up question, no additional text."""
             "state": self.state.value,
             "candidate_data": self.candidate_data,
             "technical_responses": self.technical_responses,
-            "completion_percentage": self._calculate_completion_percentage()
+            "completion_percentage": self._calculate_completion_percentage(),
         }
 
     def _calculate_completion_percentage(self) -> int:
@@ -559,14 +617,20 @@ Generate only the follow-up question, no additional text."""
             if self.tech_stack_list:
                 total_questions = len(self.tech_stack_list) * 5
                 answered_questions = len(self.technical_responses)
-                tech_percentage = (answered_questions / total_questions) * 40 if total_questions > 0 else 0
+                tech_percentage = (
+                    (answered_questions / total_questions) * 40
+                    if total_questions > 0
+                    else 0
+                )
                 return int(base_percentage + tech_percentage)
             else:
                 return base_percentage
         else:
             total_fields = len(self.candidate_data)
             completed_fields = sum(1 for value in self.candidate_data.values() if value)
-            return int((completed_fields / total_fields) * 60) if total_fields > 0 else 0
+            return (
+                int((completed_fields / total_fields) * 60) if total_fields > 0 else 0
+            )
 
     def _get_experience_level(self, years: int) -> str:
         """Determine experience level based on years."""
@@ -588,18 +652,24 @@ Generate only the follow-up question, no additional text."""
 
         progress = {}
         for i, tech in enumerate(self.tech_stack_list):
-            tech_responses = [k for k in self.technical_responses.keys() if k.startswith(tech)]
+            tech_responses = [
+                k for k in self.technical_responses.keys() if k.startswith(tech)
+            ]
             progress[tech] = {
                 "completed": len(tech_responses),
                 "total": 5,
                 "is_current": i == self.current_tech_index,
-                "is_completed": len(tech_responses) >= 5
+                "is_completed": len(tech_responses) >= 5,
             }
 
-        current_tech = self.tech_stack_list[self.current_tech_index] if self.current_tech_index < len(self.tech_stack_list) else None
+        current_tech = (
+            self.tech_stack_list[self.current_tech_index]
+            if self.current_tech_index < len(self.tech_stack_list)
+            else None
+        )
         return {
             "technologies": self.tech_stack_list,
             "current_tech": current_tech,
             "current_tech_index": self.current_tech_index,
-            "progress": progress
+            "progress": progress,
         }

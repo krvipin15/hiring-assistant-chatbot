@@ -97,7 +97,9 @@ class DatabaseDecryptor:
     SQLite database to a new decrypted database.
     """
 
-    def __init__(self, source_db: str = "candidates.db", target_db: str = "decrypt_candidates.db") -> None:
+    def __init__(
+        self, source_db: str = "candidates.db", target_db: str = "decrypt_candidates.db"
+    ) -> None:
         """
         Initialize the DatabaseDecryptor.
 
@@ -129,7 +131,7 @@ class DatabaseDecryptor:
         with sqlite3.connect(self.target_db) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                '''
+                """
                 CREATE TABLE IF NOT EXISTS candidates (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     date_time TEXT NOT NULL,
@@ -142,7 +144,7 @@ class DatabaseDecryptor:
                     tech_stack TEXT NOT NULL,
                     technical_responses_json TEXT NOT NULL
                 )
-                '''
+                """
             )
             conn.commit()
         logger.info("Table 'candidates' created successfully.")
@@ -163,9 +165,10 @@ class DatabaseDecryptor:
         logger.info(
             f"Starting data migration from '{self.source_db}' to '{self.target_db}'."
         )
-        with sqlite3.connect(self.source_db) as source_conn, sqlite3.connect(
-            self.target_db
-        ) as target_conn:
+        with (
+            sqlite3.connect(self.source_db) as source_conn,
+            sqlite3.connect(self.target_db) as target_conn,
+        ):
             source_cursor = source_conn.cursor()
             target_cursor = target_conn.cursor()
 
@@ -194,12 +197,12 @@ class DatabaseDecryptor:
 
                 # Insert into new DB
                 target_cursor.execute(
-                    '''
+                    """
                     INSERT INTO candidates
                     (date_time, name, phone_number, email, current_location,
                      experience_years, desired_positions, tech_stack, technical_responses_json)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''',
+                    """,
                     (
                         date_time,
                         name,

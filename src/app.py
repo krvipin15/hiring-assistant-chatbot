@@ -27,12 +27,18 @@ def check_environment() -> bool:
     missing_vars = [var for var in required_vars if not os.getenv(var)]
 
     if missing_vars:
-        logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+        logger.error(
+            f"Missing required environment variables: {', '.join(missing_vars)}"
+        )
         st.error("Missing required environment variables:")
         for var in missing_vars:
             st.error(f"  - {var}")
-        st.error("Please check your .env file and ensure all required variables are set.")
-        st.error("You can use the scripts in the 'scripts/' directory to generate missing keys.")
+        st.error(
+            "Please check your .env file and ensure all required variables are set."
+        )
+        st.error(
+            "You can use the scripts in the 'scripts/' directory to generate missing keys."
+        )
         return False
     logger.info("All required environment variables are present.")
     return True
@@ -45,9 +51,10 @@ def setup_page_config():
         page_title="TalentScout Hiring Assistant",
         page_icon=logo_path / "bot.png",
         layout="wide",
-        initial_sidebar_state="expanded"
+        initial_sidebar_state="expanded",
     )
-    st.markdown("""
+    st.markdown(
+        """
     <style>
     .main > div { padding: 2rem 1rem; }
     .stApp > header { background-color: transparent; }
@@ -70,49 +77,57 @@ def setup_page_config():
     .status-completed { background-color: #10b981; color: white; }
     div[data-testid="stSidebar"] > div { padding: 1rem; }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def initialize_session_state():
     """Initialize or correct Streamlit session state variables."""
-    if 'conversation_manager' not in st.session_state:
+    if "conversation_manager" not in st.session_state:
         logger.info("Initializing new ConversationManager for the session.")
         st.session_state.conversation_manager = ConversationManager()
 
-    if 'needs_response' not in st.session_state:
+    if "needs_response" not in st.session_state:
         logger.info("Initializing 'needs_response' flag in session state.")
         st.session_state.needs_response = False
 
     # **FIX**: Check for old session state format and reset if necessary
-    if 'messages' in st.session_state and st.session_state.messages:
+    if "messages" in st.session_state and st.session_state.messages:
         # Check if the timestamp is an integer (the old format)
         if isinstance(st.session_state.messages[0].get("timestamp"), int):
-            logger.warning("Old session state format detected. Resetting messages to fix compatibility.")
+            logger.warning(
+                "Old session state format detected. Resetting messages to fix compatibility."
+            )
             st.session_state.messages = []  # Reset the list to fix the error
 
     # Initialize messages list if it's empty
-    if 'messages' not in st.session_state or not st.session_state.messages:
+    if "messages" not in st.session_state or not st.session_state.messages:
         logger.info("Initializing messages list for the new session.")
         st.session_state.messages = []
         initial_response = st.session_state.conversation_manager.handle_message("start")
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": initial_response,
-            "timestamp": datetime.now()
-        })
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": initial_response,
+                "timestamp": datetime.now(),
+            }
+        )
 
 
 def render_sidebar():
     """Render the sidebar with progress tracking and candidate information."""
     with st.sidebar:
         st.markdown("### 📌 What to Expect")
-        st.markdown("""
+        st.markdown(
+            """
         **Information Gathering**: We'll collect basic information like your contact details, experience, and tech stack.
 
         **Technical Assessment**: 3–5 technical questions per skill and tailored to your experience.
 
         **Estimated Time**: 25–30 minutes to complete.
-        """)
+        """
+        )
 
         st.markdown("### 🔎 Screening Progress")
         state_info = st.session_state.conversation_manager.get_conversation_state()
@@ -132,7 +147,7 @@ def render_sidebar():
             badge_class = "status-completed"
         st.markdown(
             f'<span class="status-badge {badge_class}">📍 {state_display}</span>',
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
 
@@ -153,25 +168,35 @@ def render_chat_interface():
             <img src="data:image/png;base64,{logo_base64}" width="60">
             <h1 style="margin-left: 10px;">TalentScout Hiring Assistant</h1>
         </div>
-        """, unsafe_allow_html=True
+        """,
+        unsafe_allow_html=True,
     )
-    st.markdown("Welcome to our automated screening process! I'll guide you through a brief interview.")
+    st.markdown(
+        "Welcome to our automated screening process! I'll guide you through a brief interview."
+    )
 
     # Render existing messages
     for message in st.session_state.messages:
         role = message["role"]
-        avatar_path = logo_path / "assistant.png" if role == "assistant" else logo_path / "user.png"
+        avatar_path = (
+            logo_path / "assistant.png"
+            if role == "assistant"
+            else logo_path / "user.png"
+        )
         avatar_base64 = get_image_as_base64(avatar_path)
-        avatar_html = f'<img src="data:image/png;base64,{avatar_base64}" width="48" height="48">'
+        avatar_html = (
+            f'<img src="data:image/png;base64,{avatar_base64}" width="48" height="48">'
+        )
         bubble_class = "assistant" if role == "assistant" else "user"
 
         # Check if timestamp is a valid datetime object before formatting
         if isinstance(message["timestamp"], datetime):
-             timestamp = message["timestamp"].strftime('%H:%M')
+            timestamp = message["timestamp"].strftime("%H:%M")
         else:
-             timestamp = "" # Fallback for any unexpected type
+            timestamp = ""  # Fallback for any unexpected type
 
-        st.markdown(f"""
+        st.markdown(
+            f"""
             <div class="chat-row {bubble_class}">
                 <div class="chat-avatar {bubble_class}">{avatar_html}</div>
                 <div class="chat-bubble-container">
@@ -179,48 +204,53 @@ def render_chat_interface():
                     <div class="chat-timestamp">{timestamp}</div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Handle new input if screening is not completed
     state_info = st.session_state.conversation_manager.get_conversation_state()
     if state_info["state"] != "completed":
         # Use a flag to disable input while the assistant is generating a response
-        input_disabled = st.session_state.get('needs_response', False)
-        prompt = st.chat_input("Type your response here...", key="chat_input", disabled=input_disabled)
+        input_disabled = st.session_state.get("needs_response", False)
+        prompt = st.chat_input(
+            "Type your response here...", key="chat_input", disabled=input_disabled
+        )
 
         # If we need to generate a response (from a previous run)
-        if st.session_state.get('needs_response'):
+        if st.session_state.get("needs_response"):
             st.session_state.needs_response = False  # Reset the flag
-            user_prompt = st.session_state.messages[-1]['content']
+            user_prompt = st.session_state.messages[-1]["content"]
             logger.info(f"Generating response for user prompt: '{user_prompt[:50]}...'")
 
             with st.spinner("Thinking..."):
-                response = st.session_state.conversation_manager.handle_message(user_prompt)
+                response = st.session_state.conversation_manager.handle_message(
+                    user_prompt
+                )
 
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": response,
-                "timestamp": datetime.now()
-            })
+            st.session_state.messages.append(
+                {"role": "assistant", "content": response, "timestamp": datetime.now()}
+            )
             st.rerun()
 
         # If new input was submitted
         elif prompt:
             logger.info(f"New user prompt received: '{prompt[:50]}...'")
-            st.session_state.messages.append({
-                "role": "user",
-                "content": prompt,
-                "timestamp": datetime.now()
-            })
+            st.session_state.messages.append(
+                {"role": "user", "content": prompt, "timestamp": datetime.now()}
+            )
             st.session_state.needs_response = True
             st.rerun()
 
         # Footer
-        st.markdown("""
+        st.markdown(
+            """
             <div class="footer-note" style="position: fixed; bottom: 7rem; width: 100%; left: 0;">
                 🔒 Your information is encrypted and securely stored | Built with ❤️ using Streamlit
             </div>
-            """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_completion_summary():
@@ -228,11 +258,14 @@ def render_completion_summary():
     state_info = st.session_state.conversation_manager.get_conversation_state()
     if state_info["state"] == "completed":
         logger.info("Rendering completion summary.")
-        st.markdown("""
+        st.markdown(
+            """
             <div class="footer-note" style="position: fixed; bottom: 2rem; width: 100%; left: 0;">
                 🔒 Your information is encrypted and securely stored | Built with ❤️ using Streamlit
             </div>
-            """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def main():
@@ -247,6 +280,7 @@ def main():
     render_chat_interface()
     render_completion_summary()
     logger.info("Application render cycle complete.")
+
 
 if __name__ == "__main__":
     logger.remove()

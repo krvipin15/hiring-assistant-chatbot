@@ -69,7 +69,7 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    '''
+                    """
                     CREATE TABLE IF NOT EXISTS candidates (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         date_time TEXT NOT NULL,
@@ -82,7 +82,7 @@ class DatabaseManager:
                         tech_stack TEXT NOT NULL,
                         technical_responses_json TEXT NOT NULL
                     )
-                    '''
+                    """
                 )
                 conn.commit()
                 logger.info("Table 'candidates' is ready.")
@@ -90,16 +90,24 @@ class DatabaseManager:
             logger.exception(f"Error creating table in {self.db_path}: {e}")
             raise
 
-    def save_candidate(self, candidate_data: Dict[str, Any], technical_responses: Dict[str, Any]) -> None:
+    def save_candidate(
+        self, candidate_data: Dict[str, Any], technical_responses: Dict[str, Any]
+    ) -> None:
         """
         Save candidate data to the database, encrypting sensitive fields.
         """
         candidate_name = candidate_data.get("name", "N/A")
         logger.info(f"Attempting to save candidate data for: {candidate_name}")
         try:
-            encrypted_phone = self.encryption_manager.encrypt(candidate_data.get("phone_number", ""))
-            encrypted_email = self.encryption_manager.encrypt(candidate_data.get("email", ""))
-            encrypted_location = self.encryption_manager.encrypt(candidate_data.get("current_location", ""))
+            encrypted_phone = self.encryption_manager.encrypt(
+                candidate_data.get("phone_number", "")
+            )
+            encrypted_email = self.encryption_manager.encrypt(
+                candidate_data.get("email", "")
+            )
+            encrypted_location = self.encryption_manager.encrypt(
+                candidate_data.get("current_location", "")
+            )
 
             data = (
                 datetime.now().isoformat(),
@@ -110,18 +118,18 @@ class DatabaseManager:
                 int(candidate_data.get("experience_years", 0)),
                 candidate_data.get("desired_positions", ""),
                 candidate_data.get("tech_stack", ""),
-                json.dumps(technical_responses)
+                json.dumps(technical_responses),
             )
 
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    '''
+                    """
                     INSERT INTO candidates
                     (date_time, name, phone_number, email, current_location, experience_years,
                      desired_positions, tech_stack, technical_responses_json)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''',
+                    """,
                     data,
                 )
                 conn.commit()

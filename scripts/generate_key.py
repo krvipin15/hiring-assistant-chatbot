@@ -141,7 +141,9 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(description="Generate and manage encryption key")
     parser.add_argument("--write", action="store_true", help="Write/update key in .env")
-    parser.add_argument("--force", action="store_true", help="Overwrite existing key in .env")
+    parser.add_argument(
+        "--force", action="store_true", help="Overwrite existing key in .env"
+    )
     args = parser.parse_args()
 
     key = generate_key()
@@ -159,7 +161,9 @@ def main() -> None:
     )
 
     if existing_match and not args.force:
-        logger.warning(f"{ENV_VAR_NAME} already present in {ENV_FILE}. Use --force to overwrite.")
+        logger.warning(
+            f"{ENV_VAR_NAME} already present in {ENV_FILE}. Use --force to overwrite."
+        )
         return
 
     new_content = insert_env_var(env_content, ENV_VAR_NAME, key)
@@ -175,7 +179,9 @@ def main() -> None:
         new_content += "DATABASE_URL=sqlite:///candidates.db\n"
 
     if not ENV_FILE.exists():
-        logger.info(f"{ENV_FILE} does not exist. Creating it with restrictive permissions.")
+        logger.info(
+            f"{ENV_FILE} does not exist. Creating it with restrictive permissions."
+        )
         os.umask(0)
         with open(ENV_FILE, "w", encoding="utf-8") as f:
             f.write(new_content)
@@ -187,7 +193,9 @@ def main() -> None:
     else:
         write_env(ENV_FILE, new_content)
 
-    logger.info(f"Wrote {ENV_VAR_NAME} to {ENV_FILE}{' (overwritten)' if existing_match else ''}.")
+    logger.info(
+        f"Wrote {ENV_VAR_NAME} to {ENV_FILE}{' (overwritten)' if existing_match else ''}."
+    )
 
 
 if __name__ == "__main__":

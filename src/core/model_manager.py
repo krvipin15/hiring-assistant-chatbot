@@ -80,7 +80,9 @@ class ModelManager:
         )
         logger.info("ModelManager initialized successfully.")
 
-    def generate_response(self, user_prompt: str, history: List[Dict[str, str]] = []) -> str:
+    def generate_response(
+        self, user_prompt: str, history: List[Dict[str, str]] = []
+    ) -> str:
         """
         Generate a model response based on a user prompt and optional conversation history.
 
@@ -114,8 +116,7 @@ class ModelManager:
         try:
             messages: List = [
                 ChatCompletionSystemMessageParam(
-                    role="system",
-                    content=self.get_system_prompt()
+                    role="system", content=self.get_system_prompt()
                 )
             ]
 
@@ -154,7 +155,11 @@ class ModelManager:
             content = completion.choices[0].message.content
             logger.info("Successfully generated model response.")
             logger.debug(f"Model response: {content}")
-            return content.strip() if content else "I'm sorry, I couldn’t generate a response."
+            return (
+                content.strip()
+                if content
+                else "I'm sorry, I couldn’t generate a response."
+            )
 
         except Exception as e:
             logger.exception(f"Error generating response: {e}")
