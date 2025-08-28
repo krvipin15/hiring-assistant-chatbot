@@ -1,4 +1,4 @@
-# TalentScout Hiring Assistant Chatbot
+# AI-Powered Hiring Assistant Chatbot
 
 An intelligent hiring assistant chatbot for "TalentScout," a fictional recruitment agency. This project, part of the AI/ML Intern Assignment, is designed to conduct the initial screening of candidates by gathering essential information and assessing their technical skills through a conversational UI.
 

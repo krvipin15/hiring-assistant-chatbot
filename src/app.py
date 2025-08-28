@@ -210,7 +210,7 @@ def render_chat_interface():
 
     # Handle new input if screening is not completed
     state_info = st.session_state.conversation_manager.get_conversation_state()
-    if state_info["state"] != "completed":
+    if state_info["state"] != "exit":
         # Use a flag to disable input while the assistant is generating a response
         input_disabled = st.session_state.get("needs_response", False)
         prompt = st.chat_input(
@@ -256,7 +256,7 @@ def render_chat_interface():
 def render_completion_summary():
     """Render completion summary if screening is done."""
     state_info = st.session_state.conversation_manager.get_conversation_state()
-    if state_info["state"] == "completed":
+    if state_info["state"] == "exit":
         logger.info("Rendering completion summary.")
         st.markdown(
             """

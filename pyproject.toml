@@ -23,13 +23,6 @@ dependencies = [
     "streamlit>=1.49.0",
 ]
 
-[project.optional-dependencies]
-test = [
-    "black>=25.1.0",
-    "pytest>=8.4.1",
-    "pytest-mock>=3.14.1"
-]
-
 [project.scripts]
 generate-key = "scripts.generate_key:main"
 decrypt-db = "scripts.decrypt_database:main"

@@ -37,6 +37,7 @@ class ConversationState(Enum):
     """Enumeration of possible conversation states."""
 
     INTRODUCTION = "introduction"
+
     COLLECTING_NAME = "collecting_name"
     COLLECTING_PHONE = "collecting_phone"
     COLLECTING_EMAIL = "collecting_email"
@@ -44,8 +45,12 @@ class ConversationState(Enum):
     COLLECTING_EXPERIENCE = "collecting_experience"
     COLLECTING_POSITIONS = "collecting_positions"
     COLLECTING_TECH_STACK = "collecting_tech_stack"
+
+    REVIEWING_INFORMATION = "reviewing_information"
+
     TECHNICAL_SCREENING = "technical_screening"
     COMPLETED = "completed"
+    EXIT = "exit"
 
 
 class ConversationManager:
@@ -148,10 +153,12 @@ class ConversationManager:
                 response = self._handle_positions_collection(user_input)
             elif self.state == ConversationState.COLLECTING_TECH_STACK:
                 response = self._handle_tech_stack_collection(user_input)
+            elif self.state == ConversationState.REVIEWING_INFORMATION:
+                response = self._handle_information_review(user_input)
             elif self.state == ConversationState.TECHNICAL_SCREENING:
                 response = self._handle_technical_screening(user_input)
             elif self.state == ConversationState.COMPLETED:
-                response = self._handle_completed_state(user_input)
+                response = self._handle_post_screening(user_input)
             else:
                 logger.error(f"Unhandled conversation state: {self.state}")
                 response = (
@@ -178,7 +185,7 @@ class ConversationManager:
     def _handle_exit(self) -> str:
         """Handle exit command by saving data if possible."""
         logger.info("Exit command received. Attempting to save data.")
-        self.state = ConversationState.COMPLETED
+        self.state = ConversationState.EXIT
         try:
             # Only save if we have at least basic information
             if self.candidate_data.get("name") and any(self.candidate_data.values()):
@@ -207,7 +214,7 @@ class ConversationManager:
 
     def _handle_introduction(self, user_input: str) -> Optional[str]:
         """Handle the introduction phase."""
-        if user_input.lower() in ["hello", "hi", "hey", "start", "begin"]:
+        if user_input.lower() == "start":
             logger.info("Transitioning state from INTRODUCTION to COLLECTING_NAME")
             self.state = ConversationState.COLLECTING_NAME
             return (
@@ -223,7 +230,7 @@ class ConversationManager:
             return "Please provide a valid full name using letters only. Such as 'John Doe'."
 
         name_parts = [part for part in user_input.split() if len(part) > 1]
-        if len(name_parts) < 2:
+        if len(name_parts) < 1:
             logger.warning(f"Incomplete name received: {user_input}")
             return "Please provide your full name (first and last name). For example, 'Mike Smith'."
 
@@ -231,7 +238,7 @@ class ConversationManager:
         logger.info(f"Collected name: {self.candidate_data['name']}")
         self.state = ConversationState.COLLECTING_PHONE
         logger.info("Transitioning state to COLLECTING_PHONE")
-        return f"Nice to meet you, {self.candidate_data['name']}! Please provide your phone number including the country code e.g., +91 1122334455."
+        return f"Nice to meet you, {self.candidate_data['name']}! Please provide your phone number including the country code."
 
     def _handle_phone_collection(self, user_input: str) -> str:
         """Handle phone number collection phase."""
@@ -242,10 +249,10 @@ class ConversationManager:
             logger.info(f"Collected phone number: {phone}")
             self.state = ConversationState.COLLECTING_EMAIL
             logger.info("Transitioning state to COLLECTING_EMAIL")
-            return "Great! Provide your deliverable email address e.g., mikesmith@gmail.com."
+            return "Great! Provide your deliverable email address for job-related communications."
         else:
             logger.warning(f"Invalid phone number received: {user_input}")
-            return "Validation failed! Please provide a valid phone number with country code."
+            return "Validation failed! Please provide a valid phone number with country code. e.g., +91 1122334455"
 
     def _handle_email_collection(self, user_input: str) -> str:
         """Handle email collection phase."""
@@ -291,7 +298,7 @@ class ConversationManager:
                 logger.info("Transitioning state to COLLECTING_POSITIONS")
                 return (
                     "Excellent! What type of positions are you interested in? "
-                    "(e.g., Python Developer, Backend Developer, Frontend Developer, etc.)"
+                    "(e.g., Python Developer, Backend Developer, etc.)"
                 )
             else:
                 logger.warning(f"Unrealistic experience years received: {user_input}")
@@ -320,39 +327,165 @@ class ConversationManager:
         if len(user_input) < 3:
             logger.warning(f"Tech stack input too short: {user_input}")
             return (
-                "Please describe your technical skills and technologies you work with."
+                "Please describe your technical skills and technologies you work with. At least 2-3 skills."
             )
 
         self.candidate_data["tech_stack"] = user_input
         logger.info(f"Collected tech stack: {user_input}")
 
-        self.tech_stack_list = self._parse_tech_stack(user_input)
-        logger.info(f"Parsed tech stack: {self.tech_stack_list}")
-
-        if not self.tech_stack_list:
-            logger.warning("Could not parse any technologies from the input.")
-            return "I couldn't identify specific technologies from your input. Please list them more clearly (e.g., Python, JavaScript, React, PostgreSQL)."
-
-        for tech in self.tech_stack_list:
-            self.tech_assessments[tech] = {
-                "questions": [],
-                "responses": [],
-                "current_question": 0,
-            }
-
-        self.state = ConversationState.TECHNICAL_SCREENING
-        self.current_tech_index = 0
-        self.current_tech_question_count = 0
-        logger.info("Transitioning state to TECHNICAL_SCREENING")
-
-        current_tech = self.tech_stack_list[0]
-        question = self._generate_technical_question(current_tech, 1)
-
-        return (
-            f"Perfect! I can see you work with {', '.join(self.tech_stack_list)}. "
-            f"Now let's dive into some technical questions to better understand your expertise.\n\n"
-            f"Let's start with **{current_tech}**:\n\n{question}"
+        self.state = ConversationState.REVIEWING_INFORMATION
+        logger.info("Transitioning state to REVIEWING_INFORMATION")
+        return (f"""\
+            Let's review the information you've provided so far:\n\n
+            **Name**: {self.candidate_data.get('name')}\n
+            **Phone**: {self.candidate_data.get('phone_number')}\n
+            **Email**: {self.candidate_data.get('email')}\n
+            **Location**: {self.candidate_data.get('current_location')}\n
+            **Experience**: {self.candidate_data.get('experience_years')} years\n
+            **Desired Positions**: {self.candidate_data.get('desired_positions')}\n
+            **Tech Stack**: {self.candidate_data.get('tech_stack')}\n\n
+            Is everything correct? If not, directly specify what needs to be changed in the following format:\n
+            `<field_name>: <new_value>`\n
+            For example: `Email: new_email@example.com, Tech Stack: [Python, SQL, ML]`\n
+            If everything is correct, please reply with 'yes' to proceed to the technical questions.
+            """
         )
+
+    def _split_corrections(self, text: str) -> List[str]:
+        """
+        Split corrections by commas, but ignore commas inside brackets or quotes.
+        Example:
+            "Email: test@mail.com, Tech Stack: [Python, SQL, ML]"
+            → ["Email: test@mail.com", "Tech Stack: [Python, SQL, ML]"]
+        """
+        parts = []
+        buf = []
+        depth = 0
+        in_quotes = False
+
+        for ch in text:
+            if ch in "\"'":
+                in_quotes = not in_quotes
+            elif ch in "[({":
+                depth += 1
+            elif ch in "])}":
+                if depth > 0:
+                    depth -= 1
+            elif ch == "," and depth == 0 and not in_quotes:
+                parts.append("".join(buf).strip())
+                buf = []
+                continue
+            buf.append(ch)
+
+        if buf:
+            parts.append("".join(buf).strip())
+        return parts
+
+    def _handle_information_review(self, user_input: str) -> str:
+        """Handle information review phase."""
+        if user_input.lower() == "yes":
+            logger.info("User confirmed the information.")
+
+            # Parse tech stack and initialize technical screening
+            self.tech_stack_list = self._parse_tech_stack(self.candidate_data["tech_stack"])
+            logger.info(f"Parsed tech stack: {self.tech_stack_list}")
+
+            if not self.tech_stack_list:
+                logger.warning("Could not parse any technologies from the tech stack.")
+                return (
+                    "I couldn't identify specific technologies from your input. "
+                    "Please list them more clearly (e.g., Python, JavaScript, React, PostgreSQL)."
+                )
+
+            for tech in self.tech_stack_list:
+                self.tech_assessments[tech] = {
+                    "questions": [],
+                    "responses": [],
+                    "current_question": 0,
+                }
+
+            self.state = ConversationState.TECHNICAL_SCREENING
+            self.current_tech_index = 0
+            self.current_tech_question_count = 0
+            logger.info("Transitioning state to TECHNICAL_SCREENING")
+
+            current_tech = self.tech_stack_list[0]
+            question = self._generate_technical_question(current_tech, 1)
+
+            return (
+                f"Perfect! I can see you work with {', '.join(self.tech_stack_list)}. "
+                f"Now let's dive into some technical questions to better understand your expertise.\n\n"
+                f"Let's start with **{current_tech}**:\n\n Question {self.current_tech_question_count + 1}: {question}"
+            )
+
+        # If corrections are provided in "<field>: <value>" format
+        elif ":" in user_input:
+            logger.info("User provided corrections.")
+
+            updates = self._split_corrections(user_input)
+
+            for update in updates:
+                if ":" not in update:
+                    continue
+                field, value = update.split(":", 1)
+                field, value = field.strip().lower(), value.strip()
+
+                if field == "name":
+                    self.candidate_data["name"] = value.title()
+                elif field in ["phone", "phone number"]:
+                    if validate_phone(value):
+                        self.candidate_data["phone_number"] = value
+                    else:
+                        logger.warning(f"Invalid phone number format: {value}")
+                        return "Invalid phone number format, please provide a valid phone number."
+                elif field in ["email", "email address"]:
+                    if validate_email(value):
+                        self.candidate_data["email"] = value
+                    else:
+                        logger.warning(f"Invalid email format: {value}")
+                        return "Invalid email format, please provide a valid email address."
+                elif field in ["location", "current location"]:
+                    if validate_location(value):
+                        self.candidate_data["current_location"] = value
+                    else:
+                        logger.warning(f"Invalid location format: {value}")
+                        return "Invalid location format, please provide a valid location."
+                elif field in ["experience", "experience years"]:
+                    try:
+                        years = int(value)
+                        if 0 <= years <= 30:
+                            self.candidate_data["experience_years"] = years
+                    except ValueError:
+                        logger.warning(f"Invalid experience years format: {value}")
+                        return "Invalid experience years format, please provide a valid number of years."
+                elif field in ["positions", "position", "desired positions", "desired position"]:
+                    cleaned = value.strip("[] ")
+                    self.candidate_data["desired_positions"] = cleaned
+                elif field in ["tech stack", "skills"]:
+                    cleaned = value.strip("[] ")
+                    self.candidate_data["tech_stack"] = cleaned
+
+            logger.info(f"Candidate data updated: {self.candidate_data}")
+
+            return (f"""\
+            Got it! Here's the updated information:\n\n
+            **Name**: {self.candidate_data.get('name')}\n
+            **Phone**: {self.candidate_data.get('phone_number')}\n
+            **Email**: {self.candidate_data.get('email')}\n
+            **Location**: {self.candidate_data.get('current_location')}\n
+            **Experience**: {self.candidate_data.get('experience_years')} years\n
+            **Desired Positions**: {self.candidate_data.get('desired_positions')}\n
+            **Tech Stack**: {self.candidate_data.get('tech_stack')}\n\n
+            If everything looks correct now, please reply with 'yes' to proceed.
+            """
+        )
+
+        # Invalid input
+        else:
+            logger.warning(f"Invalid input for info review: {user_input}")
+            return """\
+                Please reply with 'yes' to confirm, or provide corrections if needed.
+                """
 
     def _parse_tech_stack(self, tech_stack: str) -> List[str]:
         """
@@ -385,6 +518,7 @@ class ConversationManager:
         """
         experience_years = self.candidate_data.get("experience_years", 0)
         experience_level = self._get_experience_level(experience_years)
+        desired_position = self.candidate_data.get("desired_position", "")
         logger.info(
             f"Generating Q{question_number} for {technology} at {experience_level} level."
         )
@@ -392,7 +526,7 @@ class ConversationManager:
         tech_assessment = self.tech_assessments.get(technology, {})
         previous_responses = tech_assessment.get("responses", [])
 
-        context_prompt = f"""Generate a {experience_level}-level technical question about {technology} for someone with {experience_years} years of experience.
+        context_prompt = f"""Generate a {desired_position}-level technical question about {technology} for someone with {experience_years} years of experience.
 
 This is question #{question_number} out of 5 for {technology}.
 
@@ -401,11 +535,12 @@ Previous responses from candidate: {previous_responses[-2:] if len(previous_resp
 Question guidelines:
 - Ask to explain a specific concept, definition or process instead of asking to write code
 - Difficulty should match {experience_level} level ({experience_years} years experience)
-- Focus on real-world application (40%) as well as theoretical knowledge (60%)
+- Focus on theoretical knowledge, to check the understanding of key principles
+- For experienced candidates, include real-world scenarios or problem-solving elements
 - Keep it concise but specific
 - Should be answerable in 2-4 sentences
 
-Generate only the question, no additional text."""
+Generate only the question, no additional text, analysis or explanations."""
 
         try:
             question = self.model_manager.generate_response(
@@ -440,19 +575,19 @@ Generate only the question, no additional text."""
                 followup_question = self._generate_followup_question(
                     current_tech, user_input
                 )
-                return f"That's interesting! Let me ask a follow-up:\n\n{followup_question}"
+                return f"That's interesting! Let me ask a follow-up:\n\n Question {self.current_tech_question_count + 1}: {followup_question}"
             elif self._is_skip_response(user_input):
                 logger.info("AI classified this as a skip response.")
                 question = self._generate_technical_question(
                     current_tech, self.current_tech_question_count + 1
                 )
-                return f"No problem! Let's move on to the next question:\n\n{question}"
+                return f"No problem! Let's move on to the next question:\n\n Question {self.current_tech_question_count + 1}: {question}"
             else:
                 logger.info("Proceeding to the next technical question.")
                 question = self._generate_technical_question(
                     current_tech, self.current_tech_question_count + 1
                 )
-                return f"Great! Next {current_tech} question:\n\n{question}"
+                return f"Great! Next {current_tech} question:\n\n Question {self.current_tech_question_count + 1}: {question}"
         else:
             logger.info(f"Completed all questions for {current_tech}.")
             self.current_tech_index += 1
@@ -462,7 +597,7 @@ Generate only the question, no additional text."""
                 next_tech = self.tech_stack_list[self.current_tech_index]
                 logger.info(f"Moving to next technology: {next_tech}")
                 question = self._generate_technical_question(next_tech, 1)
-                return f"Excellent work on {current_tech}! Now let's move to **{next_tech}**:\n\n{question}"
+                return f"Excellent work on {current_tech}! Now let's move to **{next_tech}**:\n\n Question {self.current_tech_question_count + 1}: {question}"
             else:
                 logger.info("All technologies assessed. Completing screening.")
                 return self._complete_technical_screening()
@@ -569,8 +704,8 @@ Generate only the follow-up question, no additional text."""
                 f"Your responses have been saved securely and show strong technical knowledge across "
                 f"multiple technologies. Our technical team will review your detailed responses and "
                 f"get back to you within 2-3 business days.\n\n"
-                f"Thank you for your time and thorough answers! Do you have any questions about "
-                f"the role or our company?"
+                f"Thank you for your time and thorough answers! If you have any other questions, feel free to ask or contact our HR team directly!\n"
+                f"Now you can end the session by typing 'exit'."
             )
         except Exception as e:
             logger.exception(f"Error saving candidate data at completion: {e}")
@@ -579,23 +714,20 @@ Generate only the follow-up question, no additional text."""
                 "a technical issue saving your data. Please contact our HR team directly with your information."
             )
 
-    def _handle_completed_state(self, user_input: str) -> str:
+    def _handle_post_screening(self, user_input: str) -> str:
         """Handle messages after screening is completed."""
+
         logger.info(f"Handling post-completion message: {user_input}")
         context_prompt = (
             f"The candidate {self.candidate_data.get('name', '')} has completed their screening. "
-            f"They are asking: '{user_input}'. Provide a helpful, professional response about "
-            f"the hiring process, company information, or next steps. Keep it concise and friendly."
+            f"They are asking: '{user_input}'. Tell them to contact our HR team for more information."
         )
 
         response = self.model_manager.generate_response(
             context_prompt,
             self.conversation_history[-6:] if self.conversation_history else [],
         )
-        return (
-            response
-            + "\n\nIf you have any other questions, feel free to ask or contact our HR team directly!"
-        )
+        return (response)
 
     def get_conversation_state(self) -> Dict[str, Any]:
         """
@@ -610,7 +742,7 @@ Generate only the follow-up question, no additional text."""
 
     def _calculate_completion_percentage(self) -> int:
         """Calculate completion percentage of the screening process."""
-        if self.state == ConversationState.COMPLETED:
+        if self.state == ConversationState.COMPLETED or self.state == ConversationState.EXIT:
             return 100
         elif self.state == ConversationState.TECHNICAL_SCREENING:
             base_percentage = 60
