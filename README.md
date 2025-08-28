@@ -2,7 +2,7 @@
 
 An intelligent hiring assistant chatbot for "TalentScout," a fictional recruitment agency. This project, part of the AI/ML Intern Assignment, is designed to conduct the initial screening of candidates by gathering essential information and assessing their technical skills through a conversational UI.
 
-![Chatbot Interface](https://github.com/krvipin15/hiring-assistant-chatbot/blob/main/src/img/image.png)
+![Chatbot Interface](https://github.com/krvipin15/hiring-assistant-chatbot/blob/main/src/img/img.png)
 
 ## 🌟 Project Overview
 
